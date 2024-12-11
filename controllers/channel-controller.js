@@ -49,7 +49,31 @@ const ChannelControllers = {
 		  	res.status(500).json({ error: "Server error" });
 		}
 	},
-	joinChannel: async () => {},
+	joinChannel: async (req, res) => {
+		const { channelId } = req.body;
+		const userId = req.user.userId;
+	  
+		if (!channelId) return res.status(400).json({ error: "Channel ID is required" });
+	  
+		try {
+			const channel = await prisma.channels.findUnique({where: { id: channelId }});
+		
+			if (!channel) return res.status(404).json({ error: "Channel not found" });
+		
+			// Check if the user is already a member of the channel.
+			if (channel.members.includes(userId)) return res.status(400).json({ error: "You are already a member of this channel" });
+		
+			const updatedChannel = await prisma.channels.update({
+				where: { id: channelId },
+				data: {members: { push: userId }}
+			});
+		
+			res.json(updatedChannel);
+		} catch (error) {
+			console.error('Error joining channel', error);
+			res.status(500).json({ error: "Server error" });
+		}
+	},
 	deleteUser: async () => {}
 }
 module.exports = ChannelControllers;
