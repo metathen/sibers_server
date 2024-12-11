@@ -74,6 +74,38 @@ const ChannelControllers = {
 			res.status(500).json({ error: "Server error" });
 		}
 	},
-	deleteUser: async () => {}
+	deleteUser: async (req, res) => {
+		const { channelId, userId } = req.body;
+		const creatorId = req.user.userId;
+	  
+		if (!channelId || !userId) return res.status(400).json({ error: "Channel ID and User ID are required" });
+	  
+		try {
+			const channel = await prisma.channels.findUnique({where: { id: channelId }});
+		
+			if (!channel) return res.status(404).json({ error: "Channel not found" });
+
+			//Check user role
+			if (channel.creatorId !== creatorId) return res.status(403).json({ error: "Only the channel creator can remove users" });
+
+			// Check if the user is already a member of the channel.	
+			if (!channel.members.includes(userId)) return res.status(400).json({ error: "User is not a member of this channel" });
+		
+			const updatedChannel = await prisma.channels.update({
+				where: { id: channelId },
+					data: {
+					members: {
+						// use the filter method to remove the user from the list
+						set: channel.members.filter(member => member !== userId),
+					},
+				},
+			});
+
+			res.json(updatedChannel);
+		} catch (error) {
+			console.error('Error deleting user from channel', error);
+			res.status(500).json({ error: "Server error" });
+		}
+	},
 }
 module.exports = ChannelControllers;
