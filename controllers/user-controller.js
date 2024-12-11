@@ -45,8 +45,26 @@ const UserController = {
 			res.status(500).json({error: "Login Invalid"});
 		}
 	},
-	getUserById: async () => {},
-	currentUser: async () => {}
+	currentUser: async (req, res) => {
+		try {
+			const user = await prisma.user.findUnique({
+				where: {
+					id: req.user.userId
+				},
+				include: {
+					Channels: true,
+					Messages: true
+				}
+			})
+			if(!user) {
+				return res.status(400).json({error: "Cannot find the user"})
+			}
+			res.json(user);
+		} catch (error) {
+			console.error('Error in current',error);
+			req.status(500).json({error: "Cannot find the user"});
+		}
+	}
 };
 
 module.exports = UserController;
