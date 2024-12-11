@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { UserController } = require('../controllers');
+const { UserController, ChannelControllers } = require('../controllers');
+const authToken = require('../middleware/auth');
 
 const storage = multer.diskStorage({
 	destination: 'uploads',
@@ -12,10 +13,15 @@ const storage = multer.diskStorage({
 
 const uploads = multer({storage});
 
+//User routes
 router.post('/reg', UserController.register);
 router.post('/log', UserController.login);
-router.get('/user/:id', UserController.login);
-router.put('/user/:id', UserController.updateUser);
-router.get('/current', UserController.currentUser);
+router.get('/current', authToken, UserController.currentUser);
+
+//channel routes
+router.post('/create', authToken, ChannelControllers.createChannel);
+router.put('/add', authToken, ChannelControllers.addUser);
+router.post('/join', authToken, ChannelControllers.joinChannel);
+router.delete('/delete', authToken, ChannelControllers.deleteUser);
 
 module.exports = router;
