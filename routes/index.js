@@ -17,6 +17,7 @@ const uploads = multer({storage});
 router.post('/reg', UserController.register);
 router.post('/log', UserController.login);
 router.get('/current', authToken, UserController.currentUser);
+router.get('/search', authToken, UserController.searchUser);
 
 //channel routes
 router.post('/create', authToken, ChannelControllers.createChannel);
