@@ -107,5 +107,42 @@ const ChannelControllers = {
 			res.status(500).json({ error: "Server error" });
 		}
 	},
+	sendMessage: async (req, res) => {
+		const { channelId, text } = req.body;
+		const senderId = req.user.userId;
+	
+		if (!channelId || !text) return res.status(400).json({ error: "Channel ID and text are required" });
+	
+		try {
+			const channel = await prisma.channels.findUnique({where: { id: channelId }});
+	
+			if (!channel) return res.status(404).json({ error: "Channel not found" });
+	
+			const message = await prisma.messages.create({
+				data: {
+					channelId,
+					senderId,
+					text,
+				},
+			});
+	
+			// get Socket.IO from application
+			const io = req.app.get('io');
+	
+			// Send a message of realtime for all user
+			io.to(channelId).emit('receiveMessage', {
+				id: message.id,
+				channelId: message.channelId,
+				senderId: message.senderId,
+				text: message.text,
+				createdAt: message.createdAt,
+			});
+	
+			res.status(201).json(message);
+		} catch (error) {
+			console.error('Error sending message:', error);
+			res.status(500).json({ error: "Server error" });
+		}
+	}
 }
 module.exports = ChannelControllers;
