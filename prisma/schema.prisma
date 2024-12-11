@@ -20,8 +20,6 @@ model User {
   avatarurl String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  Channels  Channels[]
-  Messages  Messages[]
 }
 
 model Channels {
@@ -32,7 +30,6 @@ model Channels {
   creatorId String     @db.ObjectId
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  Messages  Messages[]
 }
 
 model Messages {
