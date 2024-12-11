@@ -14,32 +14,34 @@ datasource db {
 }
 
 model User {
-  id String @id @default(auto() @map("_id") @db.ObjectId)
-  username String @unique
-  password String
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  username  String     @unique
+  password  String
   avatarurl String?
-  channels Channels[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Channels  Channels[]
+  Messages  Messages[]
 }
 
 model Channels {
-  id String @id @default(auto() @map("_id") @db.ObjectId)
-  name String
-  members User[]
-  createdBy User @relation(fields: [creatorId], reference: [id])
-  creatorId String @db.ObjectId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  members   String[]
+  createdBy User       @relation(fields: [creatorId], references: [id])
+  creatorId String     @db.ObjectId
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Messages  Messages[]
 }
 
 model Messages {
-  id String @id @default(auto() @map("_id") @db.ObjectId)
-  channels Channels @realtion(fields: [channelId], reference: [id])
-  channelId String @db.ObjectId
-  sender User @relation(fields: [senderId], reference: [id])
-  senderId String @db.ObjectId
-  text String
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  channels  Channels @relation(fields: [channelId], references: [id])
+  channelId String   @db.ObjectId
+  sender    User     @relation(fields: [senderId], references: [id])
+  senderId  String   @db.ObjectId
+  text      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
