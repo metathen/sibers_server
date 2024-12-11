@@ -23,5 +23,6 @@ router.post('/create', authToken, ChannelControllers.createChannel);
 router.put('/add', authToken, ChannelControllers.addUser);
 router.post('/join', authToken, ChannelControllers.joinChannel);
 router.delete('/delete', authToken, ChannelControllers.deleteUser);
+router.post('/send-message', authToken, ChannelControllers.sendMessage);
 
 module.exports = router;
