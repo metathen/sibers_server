@@ -6,12 +6,23 @@ const ChannelControllers = {
 		const createdBy = req.user.userId;
 		if(!name) return res.status(400).json({error: "Invalid!"});
 		try {
-			const cahnnel = await prisma.channels.create({
+			const cahnnel = await prisma.channel.create({
 				data: {
 					name,
 					creatorId: createdBy,
-					members: [createdBy]
+					members: {
+						connect: [{ id: createdBy }],
+					},
 				}
+			});
+
+			await prisma.user.update({ //saving a user to the group model in the database.
+				where: { id: createdBy },
+				data: {
+					channels: {
+						connect: { id: cahnnel.id },
+					},
+				},
 			});
 			res.json(cahnnel);
 		} catch (error) {
@@ -24,8 +35,9 @@ const ChannelControllers = {
 		if (!channelId || !userId) return res.status(400).json({ error: "Channel ID and User ID are required" });
 	  
 		try {
-			const channel = await prisma.channels.findUnique({
+			const channel = await prisma.channel.findUnique({
 				where: { id: channelId },
+				select: { members: true },
 			});
 		
 			if (!channel) return res.status(404).json({ error: "Channel not found" });
@@ -36,14 +48,27 @@ const ChannelControllers = {
 			// Check if the user is already a member of the channel.
 			if (channel.members.includes(userId)) return res.status(400).json({ error: "User is already a member of this channel" });
 		
+			// Add the new user to the members array.
+			const updatedMembers = [...channel.members, userId];
+			
 			const updatedChannel = await prisma.channels.update({
 				where: { id: channelId },
+				data: { members: updatedMembers },
+			});
+
+			const updatedUser = await prisma.user.update({ //saving a user to the group model in the database.
+				where: { id: userId },
 				data: {
-				members: {push: userId}
+					Channels: {
+						connect: { id: channelId },
+					},
 				},
+				select: {
+					Channels: true
+				}
 			});
 		
-			res.json(updatedChannel);
+			res.json([updatedChannel, updatedUser]);
 		} catch (error) {
 		  	console.error('Error adding user to channel', error);
 		  	res.status(500).json({ error: "Server error" });
@@ -56,16 +81,29 @@ const ChannelControllers = {
 		if (!channelId) return res.status(400).json({ error: "Channel ID is required" });
 	  
 		try {
-			const channel = await prisma.channels.findUnique({where: { id: channelId }});
+			const channel = await prisma.channel.findUnique({where: { id: channelId }, select: {members: true}});
 		
 			if (!channel) return res.status(404).json({ error: "Channel not found" });
 		
 			// Check if the user is already a member of the channel.
-			if (channel.members.includes(userId)) return res.status(400).json({ error: "You are already a member of this channel" });
+			const userIsMember = channel.members.some(member => member.id === userId);
+
+			if (userIsMember) return res.status(400).json({ error: "You are already a member of this channel" });
 		
-			const updatedChannel = await prisma.channels.update({
+			const updatedChannel = await prisma.channel.update({
 				where: { id: channelId },
-				data: {members: { push: userId }}
+				data: {members: {
+					connect: [{ id: userId }],
+				}}
+			});
+
+			await prisma.user.update({
+				where: { id: userId },
+				data: {
+					channels: {
+						connect: { id: updatedChannel.id },
+					},
+				},
 			});
 		
 			res.json(updatedChannel);
@@ -81,22 +119,42 @@ const ChannelControllers = {
 		if (!channelId || !userId) return res.status(400).json({ error: "Channel ID and User ID are required" });
 	  
 		try {
-			const channel = await prisma.channels.findUnique({where: { id: channelId }});
+			const channel = await prisma.channel.findUnique({where: { id: channelId }, select: { members: true, creatorId: true }});
+			
+			if (!channel) {
+				return res.status(404).json({ error: "Channel not found" });
+			}
+
+			console.log(channel)
 		
 			if (!channel) return res.status(404).json({ error: "Channel not found" });
 
 			//Check user role
 			if (channel.creatorId !== creatorId) return res.status(403).json({ error: "Only the channel creator can remove users" });
 
+			if (!Array.isArray(channel.members)) {
+				return res.status(500).json({ error: "Invalid members data" });
+			}
+
 			// Check if the user is already a member of the channel.	
-			if (!channel.members.includes(userId)) return res.status(400).json({ error: "User is not a member of this channel" });
+			const userIsDelete = channel.members.some(member => member.id === userId);
+			if (!userIsDelete) return res.status(400).json({ error: "User is not a member of this channel" });
 		
-			const updatedChannel = await prisma.channels.update({
+			const updatedChannel = await prisma.channel.update({
 				where: { id: channelId },
 					data: {
 					members: {
 						// use the filter method to remove the user from the list
 						set: channel.members.filter(member => member !== userId),
+					},
+				},
+			});
+			
+			await prisma.user.update({
+				where: { id: userId },
+				data: {
+					channels: {
+						disconnect: { id: channelId },
 					},
 				},
 			});
@@ -107,6 +165,47 @@ const ChannelControllers = {
 			res.status(500).json({ error: "Server error" });
 		}
 	},
+	getAllMessages: async(req,res) => {
+		const {channelId} = req.body;
+		if (!channelId) return res.status(400).json({ error: "Failed to get the Channel ID" });
+		try {
+			const messages = await prisma.message.findMany({
+				where: {
+					channelId: channelId
+				},
+				select: {sender: true, text: true, channelId: true, channel: true, senderId: true, id: true}
+			});
+			if(messages.length <= 0) return res.json({message: "This channel doesnt have any messages"});
+			res.json(messages);
+		} catch (error) {
+			console.error("Error in function getAllMessages", error);
+			res.status(500).json({error: "Failed to get messages!"})
+		}
+	},
+	getChannelById: async (req, res) => {
+		const { id } = req.params;
+	
+		if (!id) return res.status(400).json({ error: "Channel ID is required" });
+	
+		try {
+			const channel = await prisma.channel.findUnique({
+				where: { id },
+				select: {
+					name: true,
+					members: true,
+					creatorId: true,
+					creator: true
+				}
+			});
+	
+			if (!channel) return res.status(404).json({ error: "Channel not found" });
+	
+			res.json(channel);
+		} catch (error) {
+			console.error("Error retrieving channel by ID:", error);
+			res.status(500).json({ error: "Server error" });
+		}
+	},
 	sendMessage: async (req, res) => {
 		const { channelId, text } = req.body;
 		const senderId = req.user.userId;
@@ -114,16 +213,19 @@ const ChannelControllers = {
 		if (!channelId || !text) return res.status(400).json({ error: "Channel ID and text are required" });
 	
 		try {
-			const channel = await prisma.channels.findUnique({where: { id: channelId }});
+			const channel = await prisma.channel.findUnique({where: { id: channelId }});
 	
 			if (!channel) return res.status(404).json({ error: "Channel not found" });
 	
-			const message = await prisma.messages.create({
+			const message = await prisma.message.create({
 				data: {
 					channelId,
 					senderId,
 					text,
 				},
+				select: {sender: true,channelId: true,
+					senderId: true,
+					text: true}
 			});
 	
 			// get Socket.IO from application
@@ -134,6 +236,7 @@ const ChannelControllers = {
 				id: message.id,
 				channelId: message.channelId,
 				senderId: message.senderId,
+				sender: message.sender,
 				text: message.text,
 				createdAt: message.createdAt,
 			});
