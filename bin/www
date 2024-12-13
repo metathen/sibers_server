@@ -13,7 +13,7 @@ const { Server } = require('socket.io');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3080');
 app.set('port', port);
 
 /**
@@ -32,14 +32,21 @@ const io = new Server(server, {
 // сonfiguration of Socket.IO events
 io.on('connection', (socket) => {
   console.log('A user connected');
+  console.log(server)
 
-  socket.on('disconnect', () => {
-      console.log('A user disconnected');
+  socket.on('joinChannel', (channelId) => {
+    console.log(`User joined channel: ${channelId}`);
+    socket.join(channelId);
   });
 
-  socket.on('sendMessage', (data) => {
-      console.log('Message received:', data);
-      io.emit('receiveMessage', data); // broadcasts a message to all clients
+  socket.on('sendMessage', (message) => {
+    const { channelId, text, senderId } = message;
+    console.log(`Message received: ${text} from ${senderId} in channel ${channelId}`);
+    io.to(channelId).emit('receiveMessage', { text, senderId, createdAt: new Date() });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('A user disconnected');
   });
 });
 
