@@ -9,40 +9,44 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  username  String     @unique
-  password  String
-  avatarurl String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  Channels  Channels[]
-  Messages  Messages[]
+  id              String     @id @default(uuid())
+  username        String     @unique
+  password        String
+  avatarurl       String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  channels        Channel[]  @relation("MemberOfChannels") // Участник каналов
+  messages        Message[]  @relation("UserMessages")     // Отправленные сообщения
+  createdChannels Channel[]  @relation("CreatedChannels")  // Каналы, созданные пользователем
 }
 
-model Channels {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+model Channel {
+  id        String   @id @default(uuid())
   name      String
-  members   String[]
+  members   User[]   @relation("MemberOfChannels")         // Участники канала
   creatorId String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  Messages  Messages[]
-  User      User?      @relation(fields: [userId], references: [id])
-  userId    String?    @db.ObjectId
+  creator   User     @relation("CreatedChannels", fields: [creatorId], references: [id]) // Создатель канала
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages  Message[] @relation("ChannelMessages")         // Сообщения канала
 }
 
-model Messages {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  channels  Channels @relation(fields: [channelId], references: [id])
-  channelId String   @db.ObjectId
-  sender    User     @relation(fields: [senderId], references: [id])
-  senderId  String   @db.ObjectId
+model Message {
+  id        String  @id @default(uuid())
   text      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  channelId String
+  channel   Channel  @relation("ChannelMessages", fields: [channelId], references: [id]) // Связь с каналом
+
+  senderId  String
+  sender    User     @relation("UserMessages", fields: [senderId], references: [id])     // Отправитель сообщения
 }
