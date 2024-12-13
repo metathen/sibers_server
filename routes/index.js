@@ -17,13 +17,16 @@ const uploads = multer({storage});
 router.post('/reg', UserController.register);
 router.post('/log', UserController.login);
 router.get('/current', authToken, UserController.currentUser);
-router.get('/search', authToken, UserController.searchUser);
+router.post('/search', authToken, UserController.searchUser);
+router.post('/user', authToken, UserController.getUserById);
 
 //channel routes
 router.post('/create', authToken, ChannelControllers.createChannel);
-router.put('/add', authToken, ChannelControllers.addUser);
+router.post('/add', authToken, ChannelControllers.addUser);
 router.post('/join', authToken, ChannelControllers.joinChannel);
 router.delete('/delete', authToken, ChannelControllers.deleteUser);
 router.post('/send-message', authToken, ChannelControllers.sendMessage);
+router.post('/get-messages', authToken, ChannelControllers.getAllMessages);
+router.get('/channels/:id', authToken, ChannelControllers.getChannelById);
 
 module.exports = router;
