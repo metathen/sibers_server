@@ -21,7 +21,7 @@ const UserController = {
 			res.json(user);
 		} catch (error) {
 			console.error('Error in register', error);
-			res.status(500).json({error: 'Interna; server error'});
+			res.status(500).json({error: 'Internal server error'});
 		}
 	},
 	login: async (req, res) => {
@@ -52,8 +52,8 @@ const UserController = {
 					id: req.user.userId
 				},
 				include: {
-					Channels: true,
-					Messages: true
+					channels: true,
+					messages: true
 				}
 			})
 			if(!user) {
@@ -63,6 +63,24 @@ const UserController = {
 		} catch (error) {
 			console.error('Error in current',error);
 			req.status(500).json({error: "Cannot find the user"});
+		}
+	},
+	getUserById: async (req, res) => {
+		const {userId} = req.body;
+	
+		if (!userId) return res.status(400).json({ error: "User ID is required" });
+	
+		try {
+			const user = await prisma.user.findUnique({
+				where: { id: userId },
+			});
+	
+			if (!user) return res.status(404).json({ error: "User not found" });
+	
+			res.json(user);
+		} catch (error) {
+			console.error("Error retrieving user by ID:", error);
+			res.status(500).json({ error: "Server error" });
 		}
 	},
 	searchUser: async (req, res) => {
@@ -89,7 +107,7 @@ const UserController = {
 	
 			if (users.length === 0) return res.status(404).json({ message: 'No users found with that username' });
 	
-			res.status(200).json(users);
+			res.json(users);
 		} catch (error) {
 			console.error('Error searching users by username:', error);
 			return res.status(500).json({ error: 'Server error' });
