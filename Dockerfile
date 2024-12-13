@@ -8,5 +8,5 @@ RUN npm install -g prisma
 RUN prisma generate
 COPY prisma/schema.prisma ./prisma/
 #PORT
-EXPOSE 3000
+EXPOSE 3080
 CMD ["npm", "start"]
