@@ -21,21 +21,21 @@ model User {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  channels        Channel[]  @relation("MemberOfChannels") // Участник каналов
-  messages        Message[]  @relation("UserMessages")     // Отправленные сообщения
-  createdChannels Channel[]  @relation("CreatedChannels")  // Каналы, созданные пользователем
+  channels        Channel[]  @relation("MemberOfChannels")
+  messages        Message[]  @relation("UserMessages")
+  createdChannels Channel[]  @relation("CreatedChannels")
 }
 
 model Channel {
   id        String   @id @default(uuid())
   name      String
-  members   User[]   @relation("MemberOfChannels")         // Участники канала
+  members   User[]   @relation("MemberOfChannels")
   creatorId String
-  creator   User     @relation("CreatedChannels", fields: [creatorId], references: [id]) // Создатель канала
+  creator   User     @relation("CreatedChannels", fields: [creatorId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  messages  Message[] @relation("ChannelMessages")         // Сообщения канала
+  messages  Message[] @relation("ChannelMessages")
 }
 
 model Message {
@@ -45,8 +45,8 @@ model Message {
   updatedAt DateTime @updatedAt
 
   channelId String
-  channel   Channel  @relation("ChannelMessages", fields: [channelId], references: [id]) // Связь с каналом
+  channel   Channel  @relation("ChannelMessages", fields: [channelId], references: [id])
 
   senderId  String
-  sender    User     @relation("UserMessages", fields: [senderId], references: [id])     // Отправитель сообщения
+  sender    User     @relation("UserMessages", fields: [senderId], references: [id])
 }
