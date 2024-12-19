@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://sibers:sibers@db:5432/mydatabase?schema=public # URL для подключения к базе данных
+      SECRET_WORD: SIBERS
+    depends_on:
+      - db
+      - frontend
+    ports:
+      - "3000:3000" # Порт, на котором будет работать ваше приложение (если применимо)\
+
+  db:
+    image: postgres:13 # Используем официальный образ PostgreSQL
+    environment:
+      POSTGRES_USER: sibers # Укажите имя пользователя
+      POSTGRES_PASSWORD: sibers # Укажите пароль пользователя
+      POSTGRES_DB: mydatabase # Имя вашей базы данных
+    ports:
+      - "5432:5432" # Связь порта 5000 на хосте с портом 5432 внутри контейнера
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Монтируем volume для сохранения данных
+
+  frontend:
+    build: ../sibers_client # Указываем путь к директории frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:3090 # Адрес API для фронтенда
+    ports:
+      - "3090:3090"
+
+volumes:
+  postgres_data:
