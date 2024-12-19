@@ -4,6 +4,8 @@
  * Module dependencies.
  */
 
+const { UserController, ChannelControllers } = require('../controllers');
+
 var app = require('../app');
 var debug = require('debug')('sibersserver:server');
 var http = require('http');
@@ -13,7 +15,7 @@ const { Server } = require('socket.io');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3080');
+var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
 /**
@@ -33,16 +35,34 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log('A user connected');
   console.log(server)
-
+  console.log(`Socket connected: ${socket.id}`);
+  socket.on("disconnect", () => console.log(`Socket disconnected: ${socket.id}`));
   socket.on('joinChannel', (channelId) => {
     console.log(`User joined channel: ${channelId}`);
     socket.join(channelId);
   });
 
   socket.on('sendMessage', (message) => {
-    const { channelId, text, senderId } = message;
+    const { channelId, text, senderId, sender } = message;
     console.log(`Message received: ${text} from ${senderId} in channel ${channelId}`);
-    io.to(channelId).emit('receiveMessage', { text, senderId, createdAt: new Date() });
+    io.to(channelId).emit('receiveMessage', { text, senderId, sender, createdAt: new Date() });
+  });
+
+  socket.on('userJoinInChannel', (channel) => {
+    const {id} = channel;
+    console.log(`User join in channel ${id}`);
+    io.to(id).emit("userJoined", channel);
+  })
+
+  socket.on('createChannel', ({ channelId, name}) => {
+    const newChannel = ChannelControllers.createChannel(name);
+    if(newChannel) {
+      io.to(channelId).emit("createdChannel", { channelId, userId, newChannel });
+    }
+  })
+
+  socket.on("removeUser", ({ channelId, userId }) => { //user remove
+    io.to(channelId).emit("userRemoved", userId);
   });
 
   socket.on('disconnect', () => {
